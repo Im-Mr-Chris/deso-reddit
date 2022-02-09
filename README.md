@@ -1,4 +1,4 @@
-### _A web client for DeSo
+### A web client for DeSo
 
 Built with NextJS and Typescript. Styled with TailwindCSS. 
 
