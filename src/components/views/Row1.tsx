@@ -2,7 +2,7 @@ import { useMainContext } from "../../MainContext";
 import Link from "next/dist/client/link";
 import { BiComment } from "react-icons/bi";
 import Media from "../Media";
-import { secondsToTime } from "../../../lib/utils";
+import { numToString, secondsToTime } from "../../../lib/utils";
 import Image from "next/dist/client/image";
 import { useState } from "react";
 
@@ -17,6 +17,7 @@ import {
 import TitleFlair from "../TitleFlair";
 import Vote from "../Vote";
 import MediaWrapper from "./MediaWrapper";
+import Awardings from "../Awardings";
 const Row1 = ({
   post,
   hasMedia,
@@ -30,7 +31,7 @@ const Row1 = ({
   const [expand, setexpand] = useState(false);
 
   return (
-    <div className="flex flex-row items-start py-1 text-sm bg-lightPost dark:hover:bg-darkPostHover group hover:bg-lightPostHover border-l border-r border-gray-300 shadow-sm dark:bg-[#212121] dark:border-trueGray-700 dark:hover:border-trueGray-500 hover:border-gray-500 hover:shadow-xl ">
+    <div className="flex flex-row items-start py-1 text-sm bg-lightPost dark:bg-[#212121] dark:hover:bg-darkPostHover group hover:bg-lightPostHover border-l border-r border-gray-300  dark:border-trueGray-700 dark:hover:border-trueGray-500 hover:border-gray-500  ">
       {/* Votes */}
       <div
         className={
@@ -101,17 +102,22 @@ const Row1 = ({
       <div className="flex flex-col flex-grow pr-2 mt-2 ml-2">
         {/* Title */}
         <div>
-          <div className="pb-1 text-xs">
-            <TitleFlair post={post} />
-          </div>
-
-          <h1 className={" text-base leading-none cursor-pointer select-auto"}>
+          <h1
+            className={
+              " text-base leading-none cursor-pointer select-auto flex flex-row items-center gap-2 flex-wrap"
+            }
+          >
+            <div className="text-xs">
+              <TitleFlair post={post} />
+            </div>
             <a
               href={post?.permalink}
               onClick={(e) => e.preventDefault()}
               className={
-                post?.distinguished == "moderator" &&
-                " text-green-500 dark:text-green-700"
+                " group-hover:underline " +
+                (post?.distinguished == "moderator" || post?.stickied
+                  ? " text-green-500 dark:text-green-700 "
+                  : " ")
               }
             >
               {`${post?.title}  ` ?? ""}
@@ -119,7 +125,7 @@ const Row1 = ({
           </h1>
         </div>
         {/* Info */}
-        <div className="flex flex-row pt-1 text-xs text-lightBorderHighlight">
+        <div className="flex flex-row flex-wrap items-center pt-1 text-xs truncate text-lightBorderHighlight">
           <Link href={`/r/${post?.subreddit}`}>
             <a
               className="mr-1"
@@ -127,7 +133,7 @@ const Row1 = ({
                 e.stopPropagation();
               }}
             >
-              <h2>r/{post?.subreddit ?? "ERR"}</h2>
+              <h2 className="hover:underline">r/{post?.subreddit ?? "ERR"}</h2>
             </a>
           </Link>
           <p>•</p>
@@ -137,19 +143,21 @@ const Row1 = ({
                 e.stopPropagation();
               }}
             >
-              <h2 className="ml-1 mr-1">u/{post?.author ?? ""}</h2>
+              <h2 className="ml-1 mr-1 hover:underline">
+                u/{post?.author ?? ""}
+              </h2>
             </a>
           </Link>
           <p>•</p>
 
           <p className="ml-1">
             {secondsToTime(post?.created_utc, [
-              "s",
-              "min",
-              "hr",
-              "dy",
-              "mo",
-              "yr",
+              "s ago",
+              "min ago",
+              "hr ago",
+              "dy ago",
+              "mo ago",
+              "yr ago",
             ])}
           </p>
           {post?.over_18 && (
@@ -168,11 +176,17 @@ const Row1 = ({
               </span>
             </div>
           )}
-          <span className="ml-4 text-xs font-xs">{`(${post.domain})`}</span>
+          <div className="mx-0.5"></div>
+          {post?.all_awardings?.length > 0 && (
+            <div className="flex flex-row flex-wrap items-center justify-start truncate">
+              <Awardings all_awardings={post?.all_awardings} />
+            </div>
+          )}
+          <span className="ml-auto text-xs font-xs">{`(${post.domain})`}</span>
         </div>
         {/* Links */}
         <div>
-          <div className="flex flex-row items-center justify-start pb-1 space-x-1 text-xs select-none text-lightBorderHighlight dark:text-darkBorderHighlight">
+          <div className="flex flex-row flex-wrap items-center justify-start pb-1 space-x-1 text-xs select-none text-lightBorderHighlight dark:text-darkBorderHighlight">
             <button
               className={
                 "flex flex-row items-center h-6 px-2 space-x-1 border rounded-md border-lightBorder dark:border-darkBorder hover:border-lightBorderHighlight dark:hover:border-darkBorderHighlight " +
@@ -194,10 +208,12 @@ const Row1 = ({
             </button>
 
             <a href={post?.permalink} onClick={(e) => e.preventDefault()}>
-              <button className="flex flex-row items-center px-2 space-x-1 border border-transparent rounded-md hover:border-lightBorderHighlight dark:hover:border-darkBorderHighlight ">
-                <BiComment className="flex-none w-6 h-6 md:pr-2 " />
-                <h1 className="">{`${post?.num_comments ?? "??"}`}</h1>
+              <button className="flex flex-row items-center px-2 py-1 space-x-1 border border-transparent rounded-md hover:border-lightBorderHighlight dark:hover:border-darkBorderHighlight ">
+                <BiComment className="flex-none w-4 h-4 " />
                 <h1 className="">{`${
+                  numToString(post?.num_comments, 1000) ?? "??"
+                }`}</h1>
+                <h1 className="hidden md:block">{`${
                   post?.num_comments === 1 ? "comment" : "comments"
                 }`}</h1>
               </button>
@@ -207,8 +223,8 @@ const Row1 = ({
               target="_blank"
               rel="noreferrer"
             >
-              <div className="flex flex-row items-center px-2 space-x-1 border border-transparent rounded-md hover:border-lightBorderHighlight dark:hover:border-darkBorderHighlight ">
-                <BiExit className="flex-none w-6 h-6 md:pr-2" />
+              <div className="flex flex-row items-center px-2 py-1 space-x-1 border border-transparent rounded-md hover:border-lightBorderHighlight dark:hover:border-darkBorderHighlight ">
+                <BiExit className="flex-none w-4 h-4 " />
                 <h1 className="hidden md:block">Source</h1>
               </div>
             </a>
@@ -217,8 +233,8 @@ const Row1 = ({
               target="_blank"
               rel="noreferrer"
             >
-              <div className="flex flex-row items-center px-2 space-x-1 border border-transparent rounded-md hover:border-lightBorderHighlight dark:hover:border-darkBorderHighlight ">
-                <ImReddit className="flex-none w-6 h-6 md:pr-2" />
+              <div className="flex flex-row items-center px-2 py-1 space-x-1 border border-transparent rounded-md hover:border-lightBorderHighlight dark:hover:border-darkBorderHighlight ">
+                <ImReddit className="flex-none w-4 h-4 mb-0.5" />
                 <h1 className="hidden md:block ">Original</h1>
               </div>
             </a>
@@ -242,7 +258,7 @@ const Row1 = ({
                 forceMute={forceMute}
                 allowIFrame={expand}
                 postMode={false}
-                imgFull={true}
+                imgFull={false}
               />
             </a>
             {/* {hideNSFW && (

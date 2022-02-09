@@ -14,8 +14,9 @@ import SubMultiButton from "./SubMultiButton";
 import SubOptButton from "./SubOptButton";
 import { AiOutlinePlus } from "react-icons/ai";
 import { join } from "path";
+import { secondsToDate } from "../../lib/utils";
 
-const SubredditBanner = ({ subreddits }) => {
+const SubredditBanner = ({ subreddits, userMode = false }) => {
   const router = useRouter();
   const subsContext: any = useSubsContext();
   const { currSubInfo, loadCurrSubInfo, multi } = subsContext;
@@ -52,8 +53,17 @@ const SubredditBanner = ({ subreddits }) => {
   useEffect(() => {
     //loadcurrSubInfo(subreddit);
     if (subreddit.toUpperCase() === currSubInfo?.display_name?.toUpperCase()) {
+      let bannerurl = "";
+      if (currSubInfo?.banner_background_image?.length > 0) {
+        bannerurl = currSubInfo?.banner_background_image?.replaceAll(
+          "amp;",
+          ""
+        );
+      } else if (currSubInfo?.banner_img?.length > 0) {
+        bannerurl = currSubInfo?.banner_img?.replaceAll("amp;", "");
+      }
       setBanner({
-        backgroundImage: `url("${currSubInfo?.banner_background_image}")`,
+        backgroundImage: `url("${bannerurl}")`,
         backgroundColor:
           currSubInfo?.banner_background_color.length > 1
             ? currSubInfo.banner_background_color
@@ -62,6 +72,9 @@ const SubredditBanner = ({ subreddits }) => {
 
       setLoaded(true);
     }
+    return () => {
+      setBanner({});
+    };
   }, [currSubInfo, subreddit]);
 
   useEffect(() => {
@@ -126,8 +139,14 @@ const SubredditBanner = ({ subreddits }) => {
     setMultiSub(s);
     setKeepInMultiArray(true);
     //console.log(router);
+    let query = [];
+    for (let q in router.query) {
+      if (q !== "slug") {
+        query.push(`${q}=${router.query[q]}`);
+      }
+    }
     if (router.route === "/r/[...slug]") {
-      router.push(s);
+      router.push(s + (query.length > 0 ? `?${query.join("&")}` : ""));
     } else {
       router.push(`/r/${s}`, `/r/${s}`);
     }
@@ -236,12 +255,17 @@ const SubredditBanner = ({ subreddits }) => {
                   </h1>
 
                   <div className="items-center justify-end hidden space-x-0.5 md:flex">
-                    <SubButton sub={session ? currSubInfo.name : subreddit} />
-                    <SubOptButton
-                      subInfo={currSubInfo}
-                      currMulti={currMulti}
-                      subArray={subArray}
+                    <SubButton
+                      sub={session ? currSubInfo.name : subreddit}
+                      userMode={userMode}
                     />
+                    {!userMode && (
+                      <SubOptButton
+                        subInfo={currSubInfo}
+                        currMulti={currMulti}
+                        subArray={subArray}
+                      />
+                    )}
                   </div>
                 </>
               ) : (
@@ -252,12 +276,19 @@ const SubredditBanner = ({ subreddits }) => {
               {loaded && (
                 <>
                   <p>
-                    {currSubInfo?.subscribers?.toLocaleString("en-US")} members
-                    <span className="px-2">•</span>
-                    {currSubInfo?.active_user_count?.toLocaleString(
-                      "en-US"
-                    )}{" "}
-                    here
+                    {userMode ? (
+                      <>Joined {secondsToDate(currSubInfo?.created)}</>
+                    ) : (
+                      <>
+                        {currSubInfo?.subscribers?.toLocaleString("en-US")}{" "}
+                        members
+                        <span className="px-2">•</span>
+                        {currSubInfo?.active_user_count?.toLocaleString(
+                          "en-US"
+                        )}{" "}
+                        here
+                      </>
+                    )}
                   </p>
                   {currSubInfo?.over18 && (
                     <>
@@ -271,12 +302,17 @@ const SubredditBanner = ({ subreddits }) => {
               )}
             </div>
             <div className="flex items-end my-1 space-x-1 space-y-1 md:hidden">
-              <SubButton sub={session ? currSubInfo.name : subreddit} />
-              <SubOptButton
-                subInfo={currSubInfo}
-                currMulti={currMulti}
-                subArray={subArray}
+              <SubButton
+                sub={session ? currSubInfo.name : subreddit}
+                userMode={userMode}
               />
+              {!userMode && (
+                <SubOptButton
+                  subInfo={currSubInfo}
+                  currMulti={currMulti}
+                  subArray={subArray}
+                />
+              )}
             </div>
             <div className="p-1 pb-5 text-center md:text-left">
               {loaded ? (

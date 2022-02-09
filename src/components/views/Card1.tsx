@@ -2,10 +2,11 @@ import { useMainContext } from "../../MainContext";
 import { useState, useEffect } from "react";
 import Link from "next/dist/client/link";
 import Media from "../Media";
-import { secondsToTime } from "../../../lib/utils";
+import { numToString, secondsToTime } from "../../../lib/utils";
 import TitleFlair from "../TitleFlair";
 import Vote from "../Vote";
 import MediaWrapper from "./MediaWrapper";
+import Awardings from "../Awardings";
 
 //og card
 const Card1 = ({
@@ -40,7 +41,7 @@ const Card1 = ({
         <div className="">
           {(!context?.mediaOnly || !hasMedia) && (
             <div>
-              <div className="flex flex-row flex-wrap py-1 text-xs truncate select-auto text-gray">
+              <div className="flex flex-row flex-wrap items-center py-1 text-xs truncate select-auto text-gray">
                 <Link href={`/r/${post?.subreddit}`}>
                   <a
                     className="mr-1"
@@ -66,7 +67,6 @@ const Card1 = ({
                   </a>
                 </Link>
                 <p>•</p>
-
                 <p className="ml-1 font-">
                   {secondsToTime(post?.created_utc, [
                     "s ago",
@@ -93,22 +93,30 @@ const Card1 = ({
                     </span>
                   </div>
                 )}
-                <div className="flex flex-row ml-auto">
+                <div className="mx-0.5"></div>
+                {post?.all_awardings?.length > 0 && (
+                  <div className="flex flex-row flex-wrap items-center justify-start truncate">
+                    <Awardings all_awardings={post?.all_awardings} />
+                  </div>
+                )}
+
+                {/* <div className="flex flex-row ml-auto">
                   <p className="ml-1">{`(${post.domain})`}</p>
-                </div>
+                </div> */}
               </div>
               <div className="py-2">
                 <h1
                   className={
-                    (post?.distinguished == "moderator" &&
-                      " text-green-500 dark:text-green-700") +
-                    " items-center text-lg font-semibold  leading-none cursor-pointer pb-2"
+                    (post?.distinguished == "moderator" ||
+                      (post?.stickied &&
+                        " text-green-500 dark:text-green-700")) +
+                    " items-center text-lg font-semibold  leading-none cursor-pointer pb-2 flex flex-row flex-wrap gap-2"
                   }
                 >
                   <a
                     href={post?.permalink}
                     onClick={(e) => e.preventDefault()}
-                    className="mr-2"
+                    className="group-hover:underline"
                   >
                     {`${post?.title}` ?? ""}
                   </a>
@@ -145,7 +153,7 @@ const Card1 = ({
                         onClick={(e) => e.preventDefault()}
                       ></a>
                       <div className="top-0 hidden w-full p-2 text-lightText group-hover:absolute group-hover:block ">
-                        <div className="flex flex-row text-xs font-light truncate text-gray">
+                        <div className="flex flex-row items-center text-xs font-light truncate text-gray">
                           <Link href={`/r/${post?.subreddit}`}>
                             <a
                               className="mr-1"
@@ -198,22 +206,35 @@ const Card1 = ({
                               </span>
                             </div>
                           )}
-                          <div className="flex flex-row ml-auto">
+                          <div className="mx-0.5"></div>
+                          {post?.all_awardings?.length > 0 && (
+                            <div className="flex flex-row flex-wrap items-center justify-start truncate">
+                              <Awardings all_awardings={post?.all_awardings} />
+                            </div>
+                          )}
+                          {/* <div className="flex flex-row ml-auto">
                             <p className="ml-1">{`(${post.domain})`}</p>
-                          </div>
+                          </div> */}
                         </div>
-                        <a
-                          href={post?.permalink}
-                          onClick={(e) => e.preventDefault()}
-                        >
-                          <h1 className="py-1 text-lg font-medium leading-none cursor-pointer">
+                        <h1 className="flex flex-row flex-wrap items-center gap-1 pb-1">
+                          <a
+                            href={post?.permalink}
+                            onClick={(e) => e.preventDefault()}
+                            className={
+                              "py-1 text-lg font-medium leading-none cursor-pointer hover:underline" +
+                              (post?.distinguished == "moderator" ||
+                                (post?.stickied &&
+                                  " text-green-500 dark:text-green-700"))
+                            }
+                          >
                             {`${post?.title ?? ""}`}
-                          </h1>
-                        </a>
-                        <span className="text-xs">
-                          <TitleFlair post={post} />
-                        </span>
-                        <div className="flex flex-row justify-between text-sm align-bottom select-none">
+                          </a>
+                          <span className="text-xs">
+                            <TitleFlair post={post} />
+                          </span>
+                        </h1>
+
+                        <div className="flex flex-row justify-between text-xs font-semibold align-bottom select-none">
                           <div className="flex flex-row items-center space-x-1">
                             <p className="">{score + " points"}</p>
                           </div>
@@ -222,7 +243,7 @@ const Card1 = ({
                             onClick={(e) => e.preventDefault()}
                           >
                             <h1 className="cursor-pointer hover:underline ">
-                              {`${post.num_comments} ${
+                              {`${numToString(post.num_comments, 1000)} ${
                                 post.num_comments === 1 ? "comment" : "comments"
                               }`}
                             </h1>

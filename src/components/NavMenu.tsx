@@ -5,12 +5,11 @@ import ToggleTheme from "./ToggleTheme";
 import ToggleNSFW from "./ToggleNSFW";
 import ToggleAutoplay from "./ToggleAutoplay";
 import Link from "next/link";
-import ToggleMaximize from "./ToggleMaximize";
 import { useMainContext } from "../MainContext";
 import ToggleMediaOnly from "./ToggleMediaOnly";
 import ToggleAudioOnHover from "./ToggleAudioOnHover";
 import Login from "./Login";
-
+import ToggleWideUI from "./ToggleWideUI";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -18,7 +17,51 @@ function classNames(...classes) {
 
 const NavMenu = ({ hide = false }) => {
   const context: any = useMainContext();
- 
+
+  //need to reset wideUI so multi-column (narrow UI doesn't make sense with >1 column) displays properly.
+  //Refreshes feed to fix alignment when switching to 1 column and in narrow UI mode
+  //Also refreshes feed in mainContext with a useEffect when wideUI is changed if in 1 column mode
+  const setColumnCount = (count) => {
+    if (count !== context.columnOverride) {
+      //if narrow and switching from 1 column force refresh and set to not narrow so feed displays properly
+      if (!context.wideUI && context.columnOverride === 1) {
+        context.setWideUI((w) => !w);
+        //also force a refresh here to rerender feed
+        context.setForceRefresh((n) => n + 1);
+      }
+
+      //if switching to 1 column and in narrow mode, refresh feed
+      else if (count === 1) {
+        if (context.wideUI === context.saveWideUI && !context.saveWideUI) {
+          context.setForceRefresh((n) => n + 1);
+        }
+        //otherwise if not in narrow mode just reset the ui
+        else {
+          context.setWideUI(context.saveWideUI);
+        }
+      }
+      //actually change the column count
+      context.setColumnOverride(count);
+    }
+  };
+
+  const setCardStyle = (style) => {
+    if (style !== context.cardStyle) {
+      //row mode switching to one column, sync wideui
+      if (style === "row1") {
+        context.setWideUI(context.saveWideUI);
+      }
+      //when switching to/from row style in narrow mode need to refresh to render properly
+      if (
+        !context.wideUI &&
+        (context.cardStyle === "row1" || style === "row1")
+      ) {
+        context.setForceRefresh((f) => f + 1);
+      }
+      context.setCardStyle(style);
+    }
+  };
+
   return (
     <Menu
       as="div"
@@ -56,7 +99,7 @@ const NavMenu = ({ hide = false }) => {
                     className="group"
                     onClick={(e) => {
                       e.preventDefault();
-                      context.setColumnOverride(0);
+                      setColumnCount(0);
                     }}
                   >
                     <div
@@ -86,7 +129,7 @@ const NavMenu = ({ hide = false }) => {
                             }
                             onClick={(e) => {
                               e.preventDefault();
-                              context.setColumnOverride(0);
+                              setColumnCount(0);
                             }}
                           >
                             Default
@@ -104,7 +147,7 @@ const NavMenu = ({ hide = false }) => {
                             }
                             onClick={(e) => {
                               e.preventDefault();
-                              context.setColumnOverride(1);
+                              setColumnCount(1);
                             }}
                           >
                             One
@@ -122,7 +165,7 @@ const NavMenu = ({ hide = false }) => {
                             }
                             onClick={(e) => {
                               e.preventDefault();
-                              context.setColumnOverride(2);
+                              setColumnCount(2);
                             }}
                           >
                             Two
@@ -140,7 +183,7 @@ const NavMenu = ({ hide = false }) => {
                             }
                             onClick={(e) => {
                               e.preventDefault();
-                              context.setColumnOverride(3);
+                              setColumnCount(3);
                             }}
                           >
                             Three
@@ -158,7 +201,7 @@ const NavMenu = ({ hide = false }) => {
                             }
                             onClick={(e) => {
                               e.preventDefault();
-                              context.setColumnOverride(4);
+                              setColumnCount(4);
                             }}
                           >
                             Four
@@ -176,7 +219,7 @@ const NavMenu = ({ hide = false }) => {
                             }
                             onClick={(e) => {
                               e.preventDefault();
-                              context.setColumnOverride(5);
+                              setColumnCount(5);
                             }}
                           >
                             Five
@@ -194,7 +237,7 @@ const NavMenu = ({ hide = false }) => {
                             }
                             onClick={(e) => {
                               e.preventDefault();
-                              context.setColumnOverride(7);
+                              setColumnCount(7);
                             }}
                           >
                             Seven
@@ -212,9 +255,8 @@ const NavMenu = ({ hide = false }) => {
                   className="group"
                   onClick={(e) => {
                     e.preventDefault();
-                    context.setCardStyle("default");
+                    setCardStyle("default");
                   }}
-                  
                 >
                   <div
                     className={classNames(
@@ -243,7 +285,7 @@ const NavMenu = ({ hide = false }) => {
                           }
                           onClick={(e) => {
                             e.preventDefault();
-                            context.setCardStyle("card1");
+                            setCardStyle("card1");
                             // if(context.columnOverride == 1 || context.columns == 1) {context.setColumnOverride(0);};
 
                             context.setMediaOnly(false);
@@ -264,7 +306,7 @@ const NavMenu = ({ hide = false }) => {
                           }
                           onClick={(e) => {
                             e.preventDefault();
-                            context.setCardStyle("card2");
+                            setCardStyle("card2");
                             //if(context.columnOverride == 1 || context.columns == 1) {context.setColumnOverride(0);};
 
                             context.setMediaOnly(false);
@@ -285,7 +327,7 @@ const NavMenu = ({ hide = false }) => {
                           }
                           onClick={(e) => {
                             e.preventDefault();
-                            context.setCardStyle("card1");
+                            setCardStyle("card1");
                             //if(context.columnOverride == 1 || context.columns == 1) {context.setColumnOverride(0);};
                             context.setMediaOnly(true);
                           }}
@@ -303,7 +345,7 @@ const NavMenu = ({ hide = false }) => {
                           }
                           onClick={(e) => {
                             e.preventDefault();
-                            context.setCardStyle("row1");
+                            setCardStyle("row1");
                             context.setMediaOnly(false);
                             context.setColumnOverride(1);
                           }}
@@ -328,7 +370,18 @@ const NavMenu = ({ hide = false }) => {
                 </div>
               )}
             </Menu.Item> */}
-
+            <Menu.Item>
+              {({ active }) => (
+                <div
+                  className={classNames(
+                    active ? "bg-lightHighlight dark:bg-darkHighlight" : "",
+                    "block px-4 py-2 text-sm"
+                  )}
+                >
+                  <ToggleWideUI />
+                </div>
+              )}
+            </Menu.Item>
             <Menu.Item>
               {({ active }) => (
                 <div
@@ -353,18 +406,6 @@ const NavMenu = ({ hide = false }) => {
                 </div>
               )}
             </Menu.Item>
-            {/* <Menu.Item>
-              {({ active }) => (
-                <div
-                  className={classNames(
-                    active ? "bg-lightHighlight dark:bg-darkHighlight" : "",
-                    "block px-4 py-2 text-sm"
-                  )}
-                >
-                  <ToggleMaximize />
-                </div>
-              )}
-            </Menu.Item> */}
             <Menu.Item>
               {({ active }) => (
                 <div

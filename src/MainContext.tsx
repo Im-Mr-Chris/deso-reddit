@@ -16,7 +16,10 @@ export const MainProvider = ({ children }) => {
   const [columns, setColumns] = useState(3);
   const [columnOverride, setColumnOverride] = useState(0);
   const [audioOnHover, setaudioOnHover] = useState(false);
-  const [maximize, setMaximize] = useState(false);
+  //controls how feed appears, switches to true when in multicolumn mode
+  const [wideUI, setWideUI] = useState(true);
+  //saves toggle selection. Used to sync UI when switching back to 1 column. Also used to control postModal view
+  const [saveWideUI, setSaveWideUI] = useState(true);
   const [mediaOnly, setMediaOnly] = useState(false);
   const [pauseAll, setPauseAll] = useState(false);
   const [cardStyle, setCardStyle] = useState("default");
@@ -32,13 +35,54 @@ export const MainProvider = ({ children }) => {
   const [selfFilter, setSelfFilter] = useState(true);
   const [linkFilter, setLinkFilter] = useState(true);
   // const [filterCount, setFilterCount] = useState(0);
+  //advanced filters
+  //'img' filters also apply to reddit videos since those have known res as well..
+  const [imgPortraitFilter, setImgPortraitFilter] = useState(true);
+  const [imgLandscapeFilter, setImgLandScapeFilter] = useState(true);
+  const [imgResFilter, setImgResFilter] = useState(false);
+  const [imgResXFilter, setImgResXFilter] = useState(0);
+  const [imgResYFilter, setImgResYFilter] = useState(0);
+  const [imgResExactFilter, setImgResExactFilter] = useState(false);
+  const [scoreFilter, setScoreFilter] = useState(false);
+  const [scoreFilterNum, setScoreFilterNum] = useState();
+  const [scoreGreater, setScoreGreater] = useState(true);
 
   const toggleFilter = (filter) => {
     switch (filter) {
       case "images":
+        //toggle off orientation filters if no videos and images
+        if (imgFilter === true && vidFilter === false) {
+          setImgPortraitFilter(false);
+          setImgLandScapeFilter(false);
+        }
+        //toggle orientation filters on automatically if enabling images
+        if (
+          imgFilter === false &&
+          vidFilter === false &&
+          imgPortraitFilter === false &&
+          imgLandscapeFilter === false
+        ) {
+          setImgPortraitFilter(true);
+          setImgLandScapeFilter(true);
+        }
         setImgFilter((i) => !i);
         break;
       case "videos":
+        //toggle off orientation filters if no videos and images
+        if (imgFilter === false && vidFilter === true) {
+          setImgPortraitFilter(false);
+          setImgLandScapeFilter(false);
+        }
+        //toggle orientation filter on automatically if enabling videos
+        if (
+          vidFilter === false &&
+          imgFilter === false &&
+          imgPortraitFilter === false &&
+          imgLandscapeFilter === false
+        ) {
+          setImgPortraitFilter(true);
+          setImgLandScapeFilter(true);
+        }
         setVidFilter((v) => !v);
         break;
       case "galleries":
@@ -49,6 +93,43 @@ export const MainProvider = ({ children }) => {
         break;
       case "links":
         setLinkFilter((l) => !l);
+        break;
+      case "score":
+        setScoreFilter((s) => !s);
+        break;
+      case "portrait":
+        //if orientation toggled on and video+images toggled off, toggle them on
+        if (
+          imgPortraitFilter === false &&
+          imgFilter === false &&
+          vidFilter === false
+        ) {
+          setImgFilter(true);
+          setVidFilter(true);
+        }
+        //if both orientations toggled off, also toggle off image/video filter
+        if (imgPortraitFilter === true && imgLandscapeFilter === false) {
+          setImgFilter(false);
+          setVidFilter(false);
+        }
+        setImgPortraitFilter((p) => !p);
+        break;
+      case "landscape":
+        //if orientation toggled on and video+images toggled off, toggle them on
+        if (
+          imgLandscapeFilter === false &&
+          imgFilter === false &&
+          vidFilter === false
+        ) {
+          setImgFilter(true);
+          setVidFilter(true);
+        }
+        //if both orientations toggled off, also toggle off image/video filter
+        if (imgLandscapeFilter === true && imgPortraitFilter === false) {
+          setImgFilter(false);
+          setVidFilter(false);
+        }
+        setImgLandScapeFilter((l) => !l);
         break;
     }
   };
@@ -94,9 +175,19 @@ export const MainProvider = ({ children }) => {
     setMediaOnly((m) => !m);
   };
 
-  const toggleMaximize = () => {
-    setMaximize((m) => !m);
+  //syncs wideui and savedwide ui
+  const toggleWideUI = () => {
+    setSaveWideUI((w) => {
+      setWideUI(!w);
+      return !w;
+    });
   };
+  //to force refresh feed so width set properly when in one column mode
+  useEffect(() => {
+    cardStyle !== "row1" &&
+      columnOverride === 1 &&
+      setForceRefresh((f) => f + 1);
+  }, [wideUI]);
 
   const toggleNSFW = () => {
     setNSFW((prevNSFW) => {
@@ -126,9 +217,16 @@ export const MainProvider = ({ children }) => {
     const saved_columnOverride = parseInt(
       localStorage.getItem("columnOverride")
     );
+    const saved_saveWideUI = localStorage.getItem("saveWideUI");
+    saved_saveWideUI?.includes("false")
+      ? setSaveWideUI(false)
+      : setSaveWideUI(true);
+    const saved_wideUI = localStorage.getItem("wideUI");
+    saved_wideUI?.includes("false") ? setWideUI(false) : setWideUI(true);
     saved_columnOverride && setColumnOverride(saved_columnOverride);
     const saved_cardStyle = localStorage.getItem("cardStyle");
     saved_cardStyle && setCardStyle(saved_cardStyle);
+
     const local_localSubs = localStorage.getItem("localSubs");
     local_localSubs && setLocalSubs(JSON.parse(local_localSubs));
 
@@ -136,6 +234,14 @@ export const MainProvider = ({ children }) => {
     saved_imgFilter?.includes("false")
       ? setImgFilter(false)
       : setImgFilter(true);
+    const saved_imgPortraitFilter = localStorage.getItem("imgPortraitFilter");
+    saved_imgPortraitFilter?.includes("false")
+      ? setImgPortraitFilter(false)
+      : setImgPortraitFilter(true);
+    const saved_imgLandscapeFilter = localStorage.getItem("imgLandscapeFilter");
+    saved_imgFilter?.includes("false")
+      ? setImgLandScapeFilter(false)
+      : setImgLandScapeFilter(true);
     const saved_vidFilter = localStorage.getItem("vidFilter");
     saved_vidFilter?.includes("false")
       ? setVidFilter(false)
@@ -144,17 +250,36 @@ export const MainProvider = ({ children }) => {
     saved_linkFilter?.includes("false")
       ? setLinkFilter(false)
       : setLinkFilter(true);
+    const saved_selfFilter = localStorage.getItem("selfFilter");
+    saved_selfFilter?.includes("false")
+      ? setSelfFilter(false)
+      : setSelfFilter(true);
   }, []);
 
   useEffect(() => {
     localStorage.setItem("imgFilter", JSON.stringify(imgFilter));
   }, [imgFilter]);
   useEffect(() => {
+    localStorage.setItem(
+      "imgPortraitFilter",
+      JSON.stringify(imgPortraitFilter)
+    );
+  }, [imgPortraitFilter]);
+  useEffect(() => {
+    localStorage.setItem(
+      "imgLandscapeFilter",
+      JSON.stringify(imgLandscapeFilter)
+    );
+  }, [imgLandscapeFilter]);
+  useEffect(() => {
     localStorage.setItem("vidFilter", JSON.stringify(vidFilter));
   }, [vidFilter]);
   useEffect(() => {
     localStorage.setItem("linkFilter", JSON.stringify(linkFilter));
   }, [linkFilter]);
+  useEffect(() => {
+    localStorage.setItem("selfFilter", JSON.stringify(selfFilter));
+  }, [selfFilter]);
 
   useEffect(() => {
     localStorage.setItem("localSubs", JSON.stringify(localSubs));
@@ -169,6 +294,12 @@ export const MainProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem("columnOverride", JSON.stringify(columnOverride));
   }, [columnOverride]);
+  useEffect(() => {
+    localStorage.setItem("saveWideUI", JSON.stringify(saveWideUI));
+  }, [saveWideUI]);
+  useEffect(() => {
+    localStorage.setItem("wideUI", JSON.stringify(wideUI));
+  }, [wideUI]);
   useEffect(() => {
     localStorage.setItem("mediaOnly", JSON.stringify(mediaOnly));
   }, [mediaOnly]);
@@ -191,8 +322,10 @@ export const MainProvider = ({ children }) => {
         toggleAutoplay,
         columns,
         setColumns,
-        maximize,
-        toggleMaximize,
+        wideUI,
+        saveWideUI,
+        toggleWideUI,
+        setWideUI,
         columnOverride,
         setColumnOverride,
         mediaOnly,
@@ -223,6 +356,15 @@ export const MainProvider = ({ children }) => {
         galFilter,
         linkFilter,
         selfFilter,
+        imgResExactFilter,
+        imgResFilter,
+        imgLandscapeFilter,
+        imgPortraitFilter,
+        imgResXFilter,
+        imgResYFilter,
+        scoreFilter,
+        scoreGreater,
+        scoreFilterNum,
         //filterCount,
         //setFilterCount
       }}

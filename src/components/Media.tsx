@@ -151,22 +151,29 @@ const Media = ({
     };
 
     const findVideo = async () => {
-      let optimize = "1080";
+      let optimize = "720";
       let url = "";
-      if (!postMode) {
-        if (context?.columns === 3) {
+      if (!imgFull) {
+        if (postMode) {
+          optimize = "720";
+        } else if (context?.columns >= 3 && context?.columns < 5) {
           optimize = "480";
         } else if (context?.columns === 2) {
-          optimize = "1080";
-        } else if (context?.columns > 3) {
+          optimize = "480"; //"1080";
+        } else if (context?.columns === 5) {
+          optimize = "360";
+        } else if (context?.columns > 5) {
           optimize = "360";
         }
       }
 
       if (post?.mediaInfo?.videoInfo) {
         url = post.mediaInfo.videoInfo.url;
-        if (url.includes("DASH_1080") && !postMode) {
+        if (url.includes("DASH_1080") && !imgFull) {
           url = url.replace("DASH_1080", `DASH_${optimize}`);
+        }
+        if (url.includes("DASH_720") && !imgFull) {
+          url = url.replace("DASH_720", `DASH_${optimize}`);
         }
         setVideoInfo({
           url: url,
@@ -178,11 +185,12 @@ const Media = ({
           height: post.mediaInfo.videoInfo.height,
           width: post.mediaInfo.videoInfo.width,
         });
-        setImageInfo({
-          url: checkURL(post?.thumbnail),
-          height: post.mediaInfo.videoInfo.height,
-          width: post.mediaInfo.videoInfo.width,
-        });
+        // setImageInfo({
+        //   url: checkURL(post?.thumbnail),
+        //   height: post.mediaInfo.videoInfo.height,
+        //   width: post.mediaInfo.videoInfo.width,
+        // });
+        await findImage();
         if (url.includes("v.redd.it")) {
           findAudio(post.mediaInfo.videoInfo.url);
         }
@@ -285,7 +293,7 @@ const Media = ({
       setLoaded(false);
       setToLoad(false);
     };
-  }, [post, allowIFrame, context?.columnOverride]);
+  }, [post, allowIFrame, context?.columnOverride, imgFull]);
 
   const [imgheight, setimgheight] = useState({});
   const [maxheight, setmaxheight] = useState({});
@@ -305,29 +313,38 @@ const Media = ({
     // ) {
     //   imgheight = windowHeight * 0.75;
     // }
-    !post?.mediaInfo?.isPortrait
+    containerDims?.[1]
       ? setimgheight({
           height: `${imgheight}px`,
-          maxHeight: `${Math.floor(
-            windowHeight *
-              (context?.columnOverride == 1 && !imgFull ? 0.75 : cropamount)
-          )}px`,
+          maxHeight: `${Math.floor(containerDims?.[1])}px`,
         })
-      : setimgheight({
-          height: `${imgheight}px`,
-          maxHeight: `${
-            containerDims?.[1]
-              ? containerDims?.[1]
-              : Math.floor(
-                  windowHeight *
-                    (postMode
-                      ? 0.5
-                      : context?.columnOverride == 1 && !imgFull
-                      ? 0.75
-                      : cropamount)
-                )
-          }px`,
-        });
+      : context.columnOverride === 1 && !postMode
+      ? setimgheight({ maxHeight: Math.floor(windowHeight * 0.75) })
+      : "";
+
+    // !post?.mediaInfo?.isPortrait
+    //   ? setimgheight({
+    //       //height: `${imgheight}px`,
+    //       maxHeight: `${Math.floor(
+    //         windowHeight *
+    //           (context?.columnOverride == 1 && !imgFull ? 0.75 : cropamount)
+    //       )}px`,
+    //     })
+    //   : setimgheight({
+    //       height: `${imgheight}px`,
+    //       maxHeight: `${
+    //         containerDims?.[1]
+    //           ? containerDims?.[1]
+    //           : Math.floor(
+    //               windowHeight *
+    //                 (postMode
+    //                   ? 0.5
+    //                   : context?.columnOverride == 1 && !imgFull
+    //                   ? 0.75
+    //                   : cropamount)
+    //             )
+    //       }px`,
+    //     });
     setmaxheight({
       maxHeight: `${Math.floor(
         windowHeight *
@@ -381,20 +398,38 @@ const Media = ({
           {isIFrame && (allowIFrame || context?.columnOverride === 1) ? (
             <div
               className="relative"
+              // style={
+              //   postMode && isYTVid
+              //     ? ytVidHeight
+              //     : true ||
+              //       context?.columnOverride == 1 ||
+              //       windowHeight > windowWidth
+              //     ? {
+              //         height: `${
+              //           windowHeight < windowWidth
+              //             ? Math.floor(windowHeight * 0.75)
+              //             : Math.floor(windowHeight * 0.4)
+              //         }px`,
+              //       }
+              //     : {}
+              // }
+              //filling IFrames in postmode portrait pane or aproximating a 16:9 ratio elsewhere
               style={
-                postMode && isYTVid
-                  ? ytVidHeight
-                  : true ||
-                    context?.columnOverride == 1 ||
-                    windowHeight > windowWidth
-                  ? {
-                      height: `${
-                        windowHeight < windowWidth
-                          ? Math.floor(windowHeight * 0.75)
-                          : Math.floor(windowHeight * 0.4)
-                      }px`,
+                containerDims?.[1]
+                  ? { height: `${Math.floor(containerDims[1])}px` }
+                  : {
+                      height: `${Math.floor(
+                        (!context.saveWideUI
+                          ? 768
+                          : windowWidth *
+                            (windowWidth < 768
+                              ? 1
+                              : windowWidth >= 1024
+                              ? 3 / 4
+                              : 10 / 12)) *
+                          (9 / 16)
+                      )}px`,
                     }
-                  : {}
               }
             >
               <div
@@ -418,10 +453,10 @@ const Media = ({
               <Gallery
                 images={galleryInfo}
                 maxheight={
-                  (postMode && imgFull) ||
-                  (context.columnOverride == 1 && !postMode)
-                    ? maxheightnum
-                    : 0
+                  imgFull ? 0 : maxheightnum // postMode && imgFull
+                  // ? // || (context.columnOverride == 1 && !postMode)
+                  //   maxheightnum
+                  // : 0
                 }
               />
             </div>
@@ -432,9 +467,14 @@ const Media = ({
           {isImage && !isIFrame && !isMP4 ? (
             // <ImageHandler placeholder={placeholderInfo} imageInfo={imageInfo} />
             <div
-              className={"relative block "}
+              className={
+                "relative " +
+                (imgFull ? " block" : " flex items-center justify-center ")
+              } //flex items-center justify-center "}
               style={
-                imgFull || (context?.columnOverride == 1 && !postMode) 
+                (containerDims?.[1] && !imgFull) || //to match image height to portrait postmodal container
+                (context.columnOverride === 1 && !postMode) || //to prevent images from being greater than 75% of window height in single column mode
+                (postMode && !imgFull) //to prevent iamges from being greater than 75% of window height in post mode w/oimgfull
                   ? imgheight
                   : {}
               }
@@ -447,15 +487,30 @@ const Media = ({
 
               <Image
                 src={imageInfo.url}
-                height={imageInfo.height}
-                width={imageInfo.width}
+                height={
+                  (context?.columnOverride === 1 || (postMode && !imgFull)) &&
+                  imageInfo.height > maxheightnum &&
+                  !imgFull
+                    ? maxheightnum
+                    : imageInfo.height
+                }
+                width={
+                  (context?.columnOverride === 1 || (postMode && !imgFull)) &&
+                  imageInfo.height > maxheightnum &&
+                  !imgFull
+                    ? Math.floor(
+                        imageInfo.width * (maxheightnum / imageInfo.height)
+                      )
+                    : imageInfo.width
+                }
                 alt=""
                 layout={
-                  (imgFull && !(context?.cardStyle === "row1")) ||
-                  (context?.columnOverride == 1 && !postMode) || // && post?.mediaInfo?.isPortrait
-                  imageInfo.url === "spoiler"
-                    ? "fill" //"fill" //fitting image to above container
-                    : "responsive"
+                  // (imgFull && !(context?.cardStyle === "row1")) ||
+                  // context?.columnOverride == 1 ||
+                  // (postMode && !imgFull) || // && post?.mediaInfo?.isPortrait
+                  // imageInfo.url === "spoiler"
+                  //   ? "fixed" //"fill" //fitting image to above container
+                  imgFull ? "responsive" : "intrinsic" //"responsive"
                 }
                 onLoadingComplete={onLoaded}
                 lazyBoundary={imgFull ? "0px" : "2000px"}
@@ -464,7 +519,7 @@ const Media = ({
                     ? "contain"
                     : "contain"
                 }
-                priority={imgFull}
+                priority={postMode}
                 unoptimized={true}
                 // placeholder="blur"
                 // blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkKF5YDwADJAGVKdervwAAAABJRU5ErkJggg=="
@@ -494,7 +549,8 @@ const Media = ({
                   unmountIfInvisible={false}
                 > */}
                 <VideoHandler
-                  placeholder={placeholderInfo}
+                  thumbnail={placeholderInfo}
+                  placeholder={imageInfo} //{placeholderInfo}
                   videoInfo={videoInfo}
                   maxHeight={maxheight}
                   maxHeightNum={maxheightnum}

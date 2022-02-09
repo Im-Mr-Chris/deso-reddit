@@ -27,6 +27,7 @@ import { useKeyPress } from "../hooks/KeyPress";
 import { usePlausible } from "next-plausible";
 import Vote from "./Vote";
 import MediaWrapper from "./views/MediaWrapper";
+import Awardings from "./Awardings";
 
 const PostModal = ({
   setSelect,
@@ -50,7 +51,7 @@ const PostModal = ({
   const [openReply, setopenReply] = useState(false);
   const [session, loading] = useSession();
   const context: any = useMainContext();
-  const [imgFull, setimgFull] = useState(true);
+  const [imgFull, setimgFull] = useState(false);
   const [windowWidth, windowHeight] = useWindowSize();
   const [error, setError] = useState(false);
 
@@ -98,24 +99,22 @@ const PostModal = ({
       ) {
         setMediaInfo(apost.mediaInfo);
         setUsePortrait(apost?.mediaInfo?.isPortrait);
-        setimgFull(apost?.mediaInfo?.isPortrait);
+        //setimgFull(apost?.mediaInfo?.isPortrait);
       } else {
         let check = await findMediaInfo(apost);
         setMediaInfo(check);
-        check?.isPortrait ? setUsePortrait(true) : setimgFull(false);
+        check?.isPortrait ? setUsePortrait(true) : undefined;
       }
 
       setWait(false);
     };
     if (apost?.id) {
       //console.log(windowWidth, windowHeight);
-      if (windowWidth > 1300) {
-        // if (portrait) {
-        //   setUsePortrait(true);
-        //   setWait(false);
-        // } else {
-        //   checkPortrait();
-        // }
+      if (
+        windowWidth > 1300 &&
+        windowHeight < windowWidth &&
+        context.saveWideUI
+      ) {
         checkPortrait();
       } else {
         setUsePortrait(false);
@@ -262,12 +261,12 @@ const PostModal = ({
     setSelect(false);
     //console.log("Clicked back");
     //for handling returning to [frontsort] routes, only clicking in the app works... browser back button kicks to front page
-    if (returnRoute) {
-      //console.log("last route", returnRoute);
-      router.push(returnRoute);
-    } else {
-      router.back();
-    }
+    // if (returnRoute) {
+    //   //console.log("last route", returnRoute);
+    //   router.push(returnRoute);
+    // } else {
+    router.back();
+    //}
   };
 
   useEffect(() => {
@@ -293,12 +292,22 @@ const PostModal = ({
     if (move === 1) {
       //console.log(postNum, context.postNum, context.posts.length);
       if (context.posts?.[context.postNum + 1]?.data) {
-        //console.log("movenext");
+        //console.log(router, returnRoute);
         setPost(context.posts[context.postNum + 1].data);
         updateComments(context.posts[context.postNum + 1]?.data?.permalink);
-        // router.push("", context.posts[context.postNum + 1]?.data?.permalink, {
-        //   shallow: true,
-        // });
+        router.replace(
+          "",
+          router.query?.frontsort
+            ? context.posts[context.postNum + 1]?.data?.id
+            : router.route === "/u/[...slug]"
+            ? `/u/${context.posts[context.postNum + 1]?.data?.author}/p/${
+                context.posts[context.postNum + 1]?.data?.id
+              }`
+            : context.posts[context.postNum + 1]?.data?.permalink,
+          {
+            shallow: true,
+          }
+        );
         context.setPostNum((p) => p + 1);
         setVote(0);
       }
@@ -307,9 +316,19 @@ const PostModal = ({
         //console.log("moveback");
         setPost(context.posts[context.postNum - 1].data);
         updateComments(context.posts[context.postNum - 1]?.data?.permalink);
-        // router.push("", context.posts[context.postNum - 1]?.data?.permalink, {
-        //   shallow: true,
-        // });
+        router.replace(
+          "",
+          router.query?.frontsort
+            ? context.posts[context.postNum - 1]?.data?.id
+            : router.route === "/u/[...slug]"
+            ? `/u/${context.posts[context.postNum - 1]?.data?.author}/p/${
+                context.posts[context.postNum - 1]?.data?.id
+              }`
+            : context.posts[context.postNum - 1]?.data?.permalink,
+          {
+            shallow: true,
+          }
+        );
 
         context.setPostNum((p) => p - 1);
         setVote(0);
@@ -344,15 +363,13 @@ const PostModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-20 w-screen min-w-full min-h-screen overflow-y-auto overscroll-y-contain"
+      className={
+        "fixed inset-0 z-20 w-screen min-w-full min-h-screen overflow-y-auto overscroll-y-contain"
+      }
       onTouchStart={(e) => handleTouchStart(e)}
       onTouchMove={(e) => handleTouchMove(e)}
       onTouchEnd={(e) => handleTouchEnd(e)}
     >
-      {/* <div
-          
-          className="left-0 bg-black lg:w-1/12 opacity-80 "
-        ></div> */}
       <div
         onClick={() => handleBack()}
         className="fixed top-0 left-0 w-screen h-full bg-black backdrop-filter backdrop-blur-lg opacity-80 overscroll-none"
@@ -367,7 +384,7 @@ const PostModal = ({
       )}
       {!wait && (
         <>
-          <div className="flex flex-row justify-center h-full">
+          <div className={"flex flex-row justify-center h-full"}>
             {/* Portrait Media */}
             {usePortrait && (
               <div
@@ -375,7 +392,7 @@ const PostModal = ({
                 className="relative z-10 flex items-center justify-center mt-16 mr-3 overflow-y-auto bg-white border rounded-lg border-lightBorder dark:border-darkBorder dark:bg-darkBG md:w-6/12 scrollbar-thin scrollbar-thumb-blue-400 scrollbar-track-transparent scrollbar-thumb-rounded-full scrollbar-track-rounded-full dark:scrollbar-thumb-red-800"
               >
                 {pHeight && pWidth && (
-                  <div className={"flex-grow " + (!imgFull && " my-auto")}>
+                  <div className={"flex-grow " + (imgFull ? " my-auto" : "")}>
                     <div className={"block relative   "}>
                       <MediaWrapper
                         hideNSFW={hideNSFW}
@@ -395,7 +412,11 @@ const PostModal = ({
             {/* Main Card */}
             <div
               className={
-                (!usePortrait ? "w-full md:w-10/12 lg:w-3/4 " : " md:w-4/12 ") +
+                (!context?.saveWideUI && !usePortrait && windowWidth > 768
+                  ? " max-w-3xl w-[768px]"
+                  : !usePortrait
+                  ? "w-full md:w-10/12 lg:w-3/4 "
+                  : " md:w-4/12 ") +
                 " z-10 pt-2  md:flex md:flex-col md:items-center "
               }
             >
@@ -510,6 +531,7 @@ const PostModal = ({
                       {/* Main Media Column */}
                       <div className="flex-grow border-gray-100 md:border-l dark:border-darkHighlight">
                         {/* Title etc*/}
+
                         <div className="flex flex-row flex-wrap pt-1.5 text-sm md:pl-3">
                           <Link href={`/u/${apost?.author}`}>
                             <a
@@ -556,11 +578,22 @@ const PostModal = ({
                               </span>
                             </div>
                           )}
-                          <div className="flex flex-row ml-auto">
-                            <p className="ml-1">{`(${apost?.domain})`}</p>
+                          <div className="mx-1"></div>
+                          {apost?.all_awardings?.length > 0 && (
+                            <div className="flex flex-row flex-wrap items-center justify-start truncate ">
+                              <Awardings
+                                all_awardings={apost?.all_awardings}
+                                truncate={false}
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex flex-row items-center justify-center ml-auto">
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{`(${apost?.domain})`}</p>
                           </div>
                         </div>
-                        <h1 className="py-2 md:pl-3">
+
+                        <h1 className="flex flex-row flex-wrap items-center justify-start py-2 md:pl-3">
                           <a
                             className={
                               (apost?.distinguished == "moderator" ||
@@ -627,43 +660,21 @@ const PostModal = ({
                                 </button>
                               </>
                             )}
-                            {mediaInfo?.isPortrait && (
+                            {true && (
                               <button
                                 onClick={(e) => setimgFull((p) => !p)}
                                 className="flex-row items-center hidden p-2 border rounded-md sm:flex border-lightBorder dark:border-darkBorder hover:border-lightBorderHighlight dark:hover:border-darkBorderHighlight "
                               >
                                 {imgFull ? (
                                   <>
-                                    <h1
-                                      className={
-                                        "hidden " +
-                                        (!usePortrait && " md:block ")
-                                      }
-                                    >
-                                      Size
-                                    </h1>
-                                    <BiExpand
-                                      className={
-                                        "flex-none w-6 h-6 " +
-                                        (!usePortrait && " md:pl-2")
-                                      }
+                                    <BiCollapse
+                                      className={"flex-none w-6 h-6 "}
                                     />
                                   </>
                                 ) : (
                                   <>
-                                    <h1
-                                      className={
-                                        "hidden " +
-                                        (!usePortrait && " md:block ")
-                                      }
-                                    >
-                                      Size
-                                    </h1>
-                                    <BiCollapse
-                                      className={
-                                        "flex-none w-6 h-6 " +
-                                        (!usePortrait && " md:pl-2")
-                                      }
+                                    <BiExpand
+                                      className={"flex-none w-6 h-6 "}
                                     />
                                   </>
                                 )}
@@ -854,10 +865,6 @@ const PostModal = ({
         </>
       )}
 
-      {/* <div
-          onClick={() => handleBack()}
-          className="right-0 bg-black lg:w-1/12 opacity-80 "
-        ></div> */}
       {context.posts?.length > 0 && (
         <div
           onClick={(e) => changePost(1)}

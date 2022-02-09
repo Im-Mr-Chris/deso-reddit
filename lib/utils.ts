@@ -24,9 +24,27 @@ export const secondsToTime = (
   return `${t}${verbiage[5]}`;
 };
 
+export const secondsToDate = (seconds) => {
+  let date = new Date(seconds * 1000);
+  let month = date.toLocaleDateString("en-US", { month: "long" });
+  let day = date.toLocaleDateString("en-US", { day: "numeric" });
+  let year = date.toLocaleDateString("en-US", { year: "numeric" });
+  return `${month} ${day}, ${year}`;
+};
+export const numToString = (x: number, max = 10000) => {
+  if (x < max) {
+    return x.toString();
+  } else {
+    let y = Math.floor(x / 1000);
+    let z = (x / 1000).toFixed(1);
+    return z.toString() + "k";
+  }
+};
+
 export const findMediaInfo = async (post, quick = false) => {
   let videoInfo; // = { url: "", height: 0, width: 0 };
   let imageInfo; // = [{ url: "", height: 0, width: 0 }];
+  let thumbnailInfo;
   let iFrameHTML;
   let gallery; // = [];
   let isPortrait = undefined;
@@ -104,6 +122,7 @@ export const findMediaInfo = async (post, quick = false) => {
     return {
       videoInfo,
       imageInfo,
+      thumbnailInfo,
       iFrameHTML,
       gallery,
       isPortrait,
@@ -114,6 +133,7 @@ export const findMediaInfo = async (post, quick = false) => {
       isIframe,
       isLink,
       isSelf,
+      dimensions,
     };
   };
 
@@ -135,13 +155,14 @@ export const findMediaInfo = async (post, quick = false) => {
           width: post.preview.reddit_video_preview.width,
         };
 
-        imageInfo = [
+        thumbnailInfo = [
           {
             url: checkURL(post?.thumbnail),
             height: post.preview.reddit_video_preview.height,
             width: post.preview.reddit_video_preview.width,
           },
         ];
+        await findImage(post, true);
         isVideo = true;
         return true;
         //setLoaded(true);
@@ -154,13 +175,14 @@ export const findMediaInfo = async (post, quick = false) => {
           width: post?.preview?.images?.[0]?.variants?.mp4?.source?.width,
         };
 
-        imageInfo = [
+        thumbnailInfo = [
           {
             url: checkURL(post?.preview?.images?.[0]?.source?.url),
             height: post?.preview?.images?.[0]?.source?.height,
             width: post?.preview?.images?.[0]?.source?.width,
           },
         ];
+        await findImage(post, true);
         isVideo = true;
         return true;
       }
@@ -172,13 +194,14 @@ export const findMediaInfo = async (post, quick = false) => {
           height: post.media.reddit_video.height,
           width: post.media.reddit_video.width,
         };
-        imageInfo = [
+        thumbnailInfo = [
           {
             url: checkURL(post?.thumbnail),
             height: post.media.reddit_video.height,
             width: post.media.reddit_video.width,
           },
         ];
+        await findImage(post, true);
         isVideo = true;
         return true;
       }

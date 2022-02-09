@@ -5,6 +5,7 @@ import { secondsToTime } from "../../../lib/utils";
 import TitleFlair from "../TitleFlair";
 import Vote from "../Vote";
 import MediaWrapper from "./MediaWrapper";
+import Awardings from "../Awardings";
 
 //og card
 const Card1 = ({
@@ -41,15 +42,15 @@ const Card1 = ({
             <div className="p-1 px-2 pt-1.5 select-auto">
               <h1
                 className={
-                  (post?.distinguished == "moderator" &&
-                    " text-green-500 dark:text-green-700") +
-                  "  text-lg font-semibold  leading-none cursor-pointer"
+                  (post?.distinguished == "moderator " ||
+                    (post?.stickied && " text-green-500 dark:text-green-700")) +
+                  "  text-lg font-semibold  leading-none cursor-pointer gap-2 flex flex-row flex-wrap "
                 }
               >
                 <a
                   href={post?.permalink}
                   onClick={(e) => e.preventDefault()}
-                  className="mr-2"
+                  className="group-hover:underline"
                 >
                   {post?.title ?? ""}
                 </a>
@@ -59,7 +60,7 @@ const Card1 = ({
                 </span>
               </h1>
 
-              <div className="flex flex-row flex-wrap py-1 pb-1 text-xs truncate text-gray">
+              <div className="flex flex-row flex-wrap items-center py-1 pb-1 text-xs truncate text-gray">
                 <Link href={`/r/${post?.subreddit}`}>
                   <a
                     className="mr-1"
@@ -112,10 +113,16 @@ const Card1 = ({
                     </span>
                   </div>
                 )}
+                <div className="mx-0.5"></div>
+                {post?.all_awardings?.length > 0 && (
+                  <div className="flex flex-row flex-wrap items-center justify-start truncate">
+                    <Awardings all_awardings={post?.all_awardings} />
+                  </div>
+                )}
 
-                <div className="flex flex-row ml-auto">
+                {/* <div className="flex flex-row ml-auto">
                   <p className="ml-1">{`(${post.domain})`}</p>
-                </div>
+                </div> */}
               </div>
 
               <div className="flex flex-row justify-between py-1 pt-1 text-sm align-bottom select-none">
